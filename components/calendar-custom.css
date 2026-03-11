@@ -1,0 +1,35 @@
+.rbc-calendar {
+  font-family: var(--font-sans);
+}
+
+.rbc-event {
+  background-color: #18181b;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.rbc-today {
+  background-color: #f4f4f5;
+}
+
+.rbc-time-view {
+  border-color: #e4e4e7;
+  border-radius: 8px;
+}
+
+.rbc-time-header {
+  border-color: #e4e4e7;
+}
+
+.rbc-time-content {
+  border-color: #e4e4e7;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-color: #f4f4f5;
+}
+
+.rbc-timeslot-group {
+  border-color: #e4e4e7;
+}
