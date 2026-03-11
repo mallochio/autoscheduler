@@ -1,8 +1,54 @@
+# Dependencies
 node_modules/
+
+# Next.js
 .next/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
+out/
+
+# Tauri
 src-tauri/target/
+
+# SQLite databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Build output
+dist/
+build/
+coverage/
+
+# Environment
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Debug
+debug/
+
+# Amp
+.amp/
