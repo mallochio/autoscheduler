@@ -11,5 +11,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './'),
     },
+    coverage: {
+      provider: 'v8',
+      include: ['lib/**/*.ts', 'components/**/*.tsx', 'hooks/**/*.ts'],
+      exclude: ['**/*.test.*', '**/*.d.ts'],
+      reporter: ['text', 'text-summary'],
+    },
   },
 });
