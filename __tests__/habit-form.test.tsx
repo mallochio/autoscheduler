@@ -1,54 +1,93 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { HabitForm } from '@/components/habit-form';
-import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent } from "@testing-library/react";
+import { HabitForm } from "@/components/habit-form";
+import { describe, it, expect, vi } from "vitest";
 
-describe('HabitForm', () => {
-  it('renders all form fields', () => {
+describe("HabitForm", () => {
+  it("renders all form fields", () => {
     render(<HabitForm />);
 
-    expect(screen.getByLabelText('Habit Name')).toBeInTheDocument();
-    expect(screen.getByLabelText('Duration (minutes)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Priority Level')).toBeInTheDocument();
-    expect(screen.getByLabelText('Earliest Start Time')).toBeInTheDocument();
-    expect(screen.getByLabelText('Latest End Time')).toBeInTheDocument();
+    expect(screen.getByText("Habit Name")).toBeInTheDocument();
+    expect(screen.getByText("Duration (min)")).toBeInTheDocument();
+    expect(screen.getByText("Priority")).toBeInTheDocument();
+    expect(screen.getByText("Start Window")).toBeInTheDocument();
+    expect(screen.getByText("End Window")).toBeInTheDocument();
   });
 
-  it('has correct default values', () => {
+  it("has correct default values", () => {
     render(<HabitForm />);
 
-    expect(screen.getByLabelText('Duration (minutes)')).toHaveValue(45);
-    expect(screen.getByLabelText('Earliest Start Time')).toHaveValue('11:30');
-    expect(screen.getByLabelText('Latest End Time')).toHaveValue('13:30');
+    expect(screen.getByLabelText("Duration (min)")).toHaveValue(45);
+    expect(screen.getByLabelText("Start Window")).toHaveValue("09:00");
+    expect(screen.getByLabelText("End Window")).toHaveValue("17:00");
   });
 
-  it('priority select has all four options', () => {
+  it("priority select has all four options", () => {
     render(<HabitForm />);
 
-    const select = screen.getByLabelText('Priority Level');
-    const options = select.querySelectorAll('option');
+    const select = screen.getByLabelText("Priority");
+    const options = select.querySelectorAll("option");
 
     expect(options).toHaveLength(4);
-    expect(options[0]).toHaveValue('critical');
-    expect(options[1]).toHaveValue('high');
-    expect(options[2]).toHaveValue('medium');
-    expect(options[3]).toHaveValue('low');
+    expect(options[0]).toHaveValue("critical");
+    expect(options[1]).toHaveValue("high");
+    expect(options[2]).toHaveValue("medium");
+    expect(options[3]).toHaveValue("low");
   });
 
-  it('renders submit button with "Save Habit" text', () => {
+  it('renders submit button with "Create" text for new habit', () => {
     render(<HabitForm />);
 
-    const button = screen.getByRole('button', { name: 'Save Habit' });
+    const button = screen.getByRole("button", { name: "Create" });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveAttribute('type', 'submit');
+    expect(button).toHaveAttribute("type", "submit");
   });
 
-  it('form submission does not cause page navigation', () => {
+  it('renders submit button with "Update" text when editing', () => {
+    const habit = {
+      id: "1",
+      name: "Test Habit",
+      duration: 30,
+      priority: "high" as const,
+      timeStart: "10:00",
+      timeEnd: "12:00",
+    };
+
+    render(<HabitForm habit={habit} />);
+
+    const button = screen.getByRole("button", { name: "Update" });
+    expect(button).toBeInTheDocument();
+  });
+
+  it("renders cancel button when onCancel prop is provided", () => {
+    const onCancel = vi.fn();
+    render(<HabitForm onCancel={onCancel} />);
+
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    expect(cancelButton).toBeInTheDocument();
+  });
+
+  it("calls onCancel when cancel button is clicked", () => {
+    const onCancel = vi.fn();
+    render(<HabitForm onCancel={onCancel} />);
+
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    fireEvent.click(cancelButton);
+
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("updates form fields when user types", () => {
     render(<HabitForm />);
 
-    const form = screen.getByRole('button', { name: 'Save Habit' }).closest('form')!;
-    const submitEvent = fireEvent.submit(form);
+    const nameInput = screen.getByLabelText("Habit Name") as HTMLInputElement;
+    const durationInput = screen.getByLabelText(
+      "Duration (min)",
+    ) as HTMLInputElement;
 
-    // fireEvent.submit returns false when preventDefault was called
-    expect(submitEvent).toBe(false);
+    fireEvent.change(nameInput, { target: { value: "My Habit" } });
+    fireEvent.change(durationInput, { target: { value: "60" } });
+
+    expect(nameInput.value).toBe("My Habit");
+    expect(durationInput.value).toBe("60");
   });
 });

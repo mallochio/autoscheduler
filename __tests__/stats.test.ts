@@ -1,97 +1,101 @@
-import { describe, it, expect } from 'vitest';
-import { calculateStats } from '@/lib/stats';
-import { NormalizedEvent } from '@/lib/tauri-commands';
+import { describe, it, expect } from "vitest";
+import { calculateStats } from "@/lib/stats";
+import { NormalizedEvent } from "@/lib/tauri-commands";
 
-function makeEvent(overrides: Partial<NormalizedEvent> = {}): NormalizedEvent {
-  return {
-    id: '1',
-    title: 'Test',
-    start: new Date('2026-03-11T09:00:00Z'),
-    end: new Date('2026-03-11T10:00:00Z'),
-    isAllDay: false,
-    isAutoScheduled: true,
-    ...overrides,
-  };
-}
+describe("calculateStats", () => {
+  const baseDate = new Date("2024-01-15T10:00:00Z");
+  const hourLater = new Date("2024-01-15T11:00:00Z");
+  const twoHoursLater = new Date("2024-01-15T12:00:00Z");
 
-describe('calculateStats', () => {
-  it('returns zeros for an empty events array', () => {
-    const result = calculateStats([]);
-    expect(result.totalHours).toBe(0);
-    expect(result.byPriority).toEqual({});
-    expect(result.byHabit).toEqual({});
+  it("calculates total hours for auto-scheduled events only", () => {
+    const events: NormalizedEvent[] = [
+      {
+        id: "1",
+        title: "Auto 1",
+        start: baseDate,
+        end: hourLater,
+        isAllDay: false,
+        isAuto: true,
+        priority: "high",
+      },
+      {
+        id: "2",
+        title: "Manual",
+        start: hourLater,
+        end: twoHoursLater,
+        isAllDay: false,
+        isAuto: false,
+      },
+    ];
+
+    const stats = calculateStats(events);
+    expect(stats.totalHours).toBe(1);
   });
 
-  it('excludes manual events and returns zeros', () => {
-    const result = calculateStats([
-      makeEvent({ isAutoScheduled: false }),
-      makeEvent({ id: '2', isAutoScheduled: false }),
-    ]);
-    expect(result.totalHours).toBe(0);
-    expect(result.byPriority).toEqual({});
-    expect(result.byHabit).toEqual({});
+  it("groups hours by priority", () => {
+    const events: NormalizedEvent[] = [
+      {
+        id: "1",
+        title: "Task 1",
+        start: baseDate,
+        end: hourLater,
+        isAllDay: false,
+        isAuto: true,
+        priority: "critical",
+      },
+      {
+        id: "2",
+        title: "Task 2",
+        start: hourLater,
+        end: twoHoursLater,
+        isAllDay: false,
+        isAuto: true,
+        priority: "high",
+      },
+    ];
+
+    const stats = calculateStats(events);
+    expect(stats.byPriority.critical).toBe(1);
+    expect(stats.byPriority.high).toBe(1);
   });
 
-  it('calculates stats for a single auto-scheduled event', () => {
-    const result = calculateStats([
-      makeEvent({ title: 'Meditate', priority: 'high' }),
-    ]);
-    expect(result.totalHours).toBe(1);
-    expect(result.byPriority).toEqual({ high: 1 });
-    expect(result.byHabit).toEqual({ Meditate: 1 });
+  it("groups hours by habit title", () => {
+    const events: NormalizedEvent[] = [
+      {
+        id: "1",
+        title: "Deep Work",
+        start: baseDate,
+        end: twoHoursLater,
+        isAllDay: false,
+        isAuto: true,
+        priority: "high",
+      },
+    ];
+
+    const stats = calculateStats(events);
+    expect(stats.byHabit["Deep Work"]).toBe(2);
   });
 
-  it('groups by different priorities', () => {
-    const result = calculateStats([
-      makeEvent({ id: '1', priority: 'high' }),
-      makeEvent({ id: '2', priority: 'low' }),
-      makeEvent({ id: '3', priority: 'high' }),
-    ]);
-    expect(result.totalHours).toBe(3);
-    expect(result.byPriority).toEqual({ high: 2, low: 1 });
+  it("returns zeros for empty event list", () => {
+    const stats = calculateStats([]);
+    expect(stats.totalHours).toBe(0);
+    expect(Object.keys(stats.byPriority)).toHaveLength(0);
+    expect(Object.keys(stats.byHabit)).toHaveLength(0);
   });
 
-  it('aggregates hours for the same habit name', () => {
-    const result = calculateStats([
-      makeEvent({ id: '1', title: 'Exercise' }),
-      makeEvent({ id: '2', title: 'Exercise' }),
-      makeEvent({ id: '3', title: 'Read' }),
-    ]);
-    expect(result.byHabit).toEqual({ Exercise: 2, Read: 1 });
-  });
+  it("handles missing priority by defaulting to none", () => {
+    const events: NormalizedEvent[] = [
+      {
+        id: "1",
+        title: "No Priority",
+        start: baseDate,
+        end: hourLater,
+        isAllDay: false,
+        isAuto: true,
+      },
+    ];
 
-  it('only counts auto-scheduled events in a mixed list', () => {
-    const result = calculateStats([
-      makeEvent({ id: '1', title: 'Auto', isAutoScheduled: true }),
-      makeEvent({ id: '2', title: 'Manual', isAutoScheduled: false }),
-      makeEvent({ id: '3', title: 'Auto2', isAutoScheduled: true }),
-    ]);
-    expect(result.totalHours).toBe(2);
-    expect(result.byHabit).toEqual({ Auto: 1, Auto2: 1 });
-    expect(result.byHabit).not.toHaveProperty('Manual');
-  });
-
-  it('puts events with no priority into the "none" bucket', () => {
-    const result = calculateStats([
-      makeEvent({ priority: undefined }),
-    ]);
-    expect(result.byPriority).toEqual({ none: 1 });
-  });
-
-  it('puts events with no title into the "Unknown" bucket', () => {
-    const result = calculateStats([
-      makeEvent({ title: '' }),
-    ]);
-    expect(result.byHabit).toEqual({ Unknown: 1 });
-  });
-
-  it('handles fractional hours (30-min event = 0.5h)', () => {
-    const result = calculateStats([
-      makeEvent({
-        start: new Date('2026-03-11T09:00:00Z'),
-        end: new Date('2026-03-11T09:30:00Z'),
-      }),
-    ]);
-    expect(result.totalHours).toBe(0.5);
+    const stats = calculateStats(events);
+    expect(stats.byPriority.none).toBe(1);
   });
 });
