@@ -1,4 +1,5 @@
-import { NormalizedEvent } from '@/lib/tauri-commands';
+import { NormalizedEvent } from "./tauri-commands";
+import { PRIORITIES, Priority } from "./utils";
 
 export interface WeeklyStats {
   totalHours: number;
@@ -7,25 +8,32 @@ export interface WeeklyStats {
 }
 
 export function calculateStats(events: NormalizedEvent[]): WeeklyStats {
-  const autoEvents = events.filter(e => e.isAutoScheduled);
-  
-  const totalHours = autoEvents.reduce((acc, e) => acc + getDurationHours(e), 0);
-  
-  const byPriority = autoEvents.reduce((acc, e) => {
-    const p = e.priority || 'none';
-    acc[p] = (acc[p] || 0) + getDurationHours(e);
-    return acc;
-  }, {} as Record<string, number>);
+  const auto = events.filter((e) => e.isAuto);
 
-  const byHabit = autoEvents.reduce((acc, e) => {
-    const title = e.title || 'Unknown';
-    acc[title] = (acc[title] || 0) + getDurationHours(e);
-    return acc;
-  }, {} as Record<string, number>);
+  const totalHours = auto.reduce((acc, e) => acc + getHours(e), 0);
+
+  const byPriority = auto.reduce(
+    (acc, e) => {
+      const p = e.priority || "none";
+      acc[p] = (acc[p] || 0) + getHours(e);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const byHabit = auto.reduce(
+    (acc, e) => {
+      const title = e.title || "Unknown";
+      acc[title] = (acc[title] || 0) + getHours(e);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   return { totalHours, byPriority, byHabit };
 }
 
-function getDurationHours(event: NormalizedEvent): number {
-  return (event.end.getTime() - event.start.getTime()) / 3600000;
+function getHours(e: NormalizedEvent): number {
+  const ms = e.end.getTime() - e.start.getTime();
+  return ms / 3600000;
 }
